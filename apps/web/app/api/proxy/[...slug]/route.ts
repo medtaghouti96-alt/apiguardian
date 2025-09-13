@@ -1,12 +1,14 @@
+// File: apps/web/app/api/proxy/[...slug]/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
-// Use the new, corrected relative path
-import { authenticateRequest } from '../../_lib/auth';
+import { authenticateRequest } from '../../_lib/auth'; // Using the simplified co-located path
 
 export async function POST(req: NextRequest) {
   try {
     // --- Step 1: Authentication ---
     const authResult = await authenticateRequest(req);
 
+    // If authentication fails, immediately return the error
     if (!authResult.isValid) {
       return NextResponse.json(
         { error: authResult.errorMessage },
@@ -14,7 +16,7 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    // --- FIX: Add a "guard clause" to satisfy TypeScript's strict null checks ---
+    // Add the "guard clause" to satisfy TypeScript's strict null checks
     if (!authResult.project || !authResult.decryptedKey) {
         return NextResponse.json(
             { error: "Authentication successful but data is missing." },
@@ -22,14 +24,11 @@ export async function POST(req: NextRequest) {
         );
     }
     
-    // Now that we've checked, we can safely de-structure the variables.
     const { project, decryptedKey } = authResult;
     
-    // --- Future steps will go here ---
-    // 2. Forwarding
-    // 3. Streaming the response
-    
-    // For now, let's return a success message with the project ID to prove it worked.
+    // --- THIS IS THE PART WE ARE TESTING ---
+    // If we get here, it means authentication and decryption worked.
+    // We will replace this with the real forwarding logic in the next step.
     return NextResponse.json({
       message: "Authentication successful!",
       projectId: project.id,
@@ -43,4 +42,6 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
     return NextResponse.json({ error: 'Method Not Allowed' }, { status: 405, headers: { 'Allow': 'POST' } });
-}
+}git add .
+git commit -m "fix(proxy): ensure auth module is correctly called"
+git push
