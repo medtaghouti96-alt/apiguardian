@@ -3,17 +3,18 @@
   "globalDependencies": [
     "**/.env.*"
   ],
-  "globalEnv": [
-    "CLERK_SECRET_KEY",
-    "SUPABASE_SERVICE_KEY",
-    "ENCRYPTION_KEY",
-    "SUPABASE_URL",
-    "NEXT_PUBLIC_SUPABASE_URL",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-    "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY"
-  ],
   "tasks": {
     "build": {
+
+      "passThroughEnv": [
+        "CLERK_SECRET_KEY",
+        "SUPABASE_SERVICE_KEY",
+        "ENCRYPTION_KEY",
+        "SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY"
+      ],
       "dependsOn": ["^build"],
       "outputs": [".next/**", "!.next/cache/**"]
     },
