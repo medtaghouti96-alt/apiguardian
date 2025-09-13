@@ -1,4 +1,5 @@
 // File: apps/web/app/api/proxy/[...slug]/route.ts
+export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateRequest } from '../../_lib/auth';
