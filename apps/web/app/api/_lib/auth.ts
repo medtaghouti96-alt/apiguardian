@@ -1,21 +1,37 @@
 // File: packages/shared-logic/src/auth.ts
 
 import { createClient } from '@supabase/supabase-js';
-import { decryptSecret } from './encryption'; // <-- It's in the same folder now
-// Initialize the Supabase client once for this module
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_KEY!
-);
+import { decryptSecret } from './encryption';
+
+/**
+ * Lazily initializes and returns the Supabase admin client.
+ * This prevents the client from being created at build time.
+ * It will only be created at runtime when a request is made.
+ */
+const getSupabaseAdmin = () => {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    // This will now throw an error at RUNTIME if the variables are missing,
+    // which is the correct behavior.
+    throw new Error('Supabase environment variables are not configured on the server.');
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey);
+};
 
 /**
  * Authenticates an incoming API request to the proxy.
  * It validates the `ag-` key and decrypts the provider's secret key.
- * @param request - The incoming NextRequest object.
+ * @param request - The incoming Request object.
  * @returns An object indicating success or failure, and containing project data
  *          and the decrypted key on success.
  */
 export async function authenticateRequest(request: Request) {
+  // Initialize the client here, inside the function, for every request.
+  const supabase = getSupabaseAdmin();
+
   // 1. Get the ag- key from the Authorization header
   const authHeader = request.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ag-')) {
@@ -61,7 +77,7 @@ export async function authenticateRequest(request: Request) {
     };
   }
 
-  // 4. Decrypt the secret key using our native crypto module
+  // 4. Decrypt the secret key
   const decryptedKey = decryptSecret(
     project.openai_api_key_encrypted,
     masterKey
