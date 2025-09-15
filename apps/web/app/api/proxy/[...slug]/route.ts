@@ -1,7 +1,7 @@
 // File: apps/web/app/api/proxy/[...slug]/route.ts
 
 // This tells Vercel to use the Edge Runtime, which is faster and better for proxies.
-export const runtime = 'edge';
+//export const runtime = 'edge';
 
 import { NextRequest, NextResponse } from 'next/server';
 
