@@ -1,53 +1,61 @@
 // File: apps/web/app/api/proxy/[...slug]/route.ts
-export const dynamic = 'force-dynamic';
+
+// This tells Vercel to use the Edge Runtime, which is faster and better for proxies.
+export const runtime = 'edge';
 
 import { NextRequest, NextResponse } from 'next/server';
-// Note: Ensure this import path correctly resolves to your shared-logic package
-import { authenticateRequest } from '../../_lib/auth'; 
+
+// Import all our new and existing _lib modules
+import { authenticateRequest } from '../../_lib/auth';
+import { getProviderAdapter } from '../../_lib/provider-factory';
+import { forwardRequestToProvider } from '../../_lib/forwarder';
 
 export async function POST(req: NextRequest) {
-  console.log("--- PROXY HANDLER STARTED ---");
-  console.log(`Incoming request URL: ${req.url}`);
-  
   try {
-    console.log("Attempting authentication...");
-
-    // This function will now work correctly because of the fix in `auth.ts`
+    // --- Step 1: Authentication & Decryption ---
+    // This part remains the same.
     const authResult = await authenticateRequest(req);
 
-    console.log(`Authentication result: isValid=${authResult.isValid}`);
-
     if (!authResult.isValid) {
-      console.error(`Authentication failed: ${authResult.errorMessage}`);
-      return NextResponse.json(
-        { error: authResult.errorMessage },
-        { status: authResult.status }
-      );
+      return NextResponse.json({ error: authResult.errorMessage }, { status: authResult.status });
     }
-    
     if (!authResult.project || !authResult.decryptedKey) {
-        console.error("Authentication successful but data is missing.");
-        return NextResponse.json(
-            { error: "Internal Authentication Error: Data missing after validation." },
-            { status: 500 }
-        );
+        return NextResponse.json({ error: "Authentication successful but data is missing." }, { status: 500 });
     }
     
     const { project, decryptedKey } = authResult;
-    
-    // For now, we return the success message. The forwarding logic will go here.
-    return NextResponse.json({
-      message: "Authentication successful!",
-      projectId: project.id,
+
+    // --- Step 2: Provider Selection ---
+    // We get the correct "adapter" for the provider (e.g., OpenAI).
+    const adapter = getProviderAdapter(req);
+    if (!adapter) {
+      return NextResponse.json({ error: "Invalid AI provider specified in URL." }, { status: 400 });
+    }
+
+    // --- Step 3: Forward Request ---
+    // We call our forwarder module to send the request to the real AI provider.
+    const upstreamResponse = await forwardRequestToProvider({
+      request: req,
+      decryptedKey: decryptedKey,
+      adapter: adapter
     });
+    
+    // --- Step 4 (Future): Asynchronous Analytics will go here ---
+    // e.g., processAnalyticsInBackground({ ... });
+
+    // --- Step 5: Stream Response Back to User ---
+    // We return the upstream response directly. This is the most efficient
+    // way to handle streaming and ensures all headers are passed correctly.
+    return upstreamResponse;
 
   } catch (error) {
-    console.error("CRITICAL ERROR in proxy handler try/catch block:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    // Gracefully handle any unexpected errors.
+    console.error("CRITICAL ERROR in proxy handler:", error);
+    const errorMessage = error instanceof Error ? error.message : "Internal Server Error";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
-export async function GET() {
-    console.log("--- GET request received and blocked ---");
+export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Method Not Allowed' }, { status: 405, headers: { 'Allow': 'POST' } });
 }
