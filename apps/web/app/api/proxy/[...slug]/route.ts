@@ -2,11 +2,11 @@
 
 // This tells Vercel to use the Edge Runtime, which is faster and better for proxies.
 //export const runtime = 'edge';
-
+import { authenticateRequest } from '../../_lib/auth';
 import { NextRequest, NextResponse } from 'next/server';
 
 // Import all our new and existing _lib modules
-import { authenticateRequest } from '../../_lib/auth';
+
 import { getProviderAdapter } from '../../_lib/provider-factory';
 import { forwardRequestToProvider } from '../../_lib/forwarder';
 
